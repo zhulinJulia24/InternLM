@@ -38,6 +38,7 @@ jobs:
         lmdeploy check_env
     - name: run_test
       run: |
+        pip install pytest
         pytest tests/test_hf_model.py -m interns1
 
 
