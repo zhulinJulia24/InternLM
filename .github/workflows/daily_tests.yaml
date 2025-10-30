@@ -35,14 +35,10 @@ jobs:
     - name: check env
       run: |
         pip list
-        lmdepoly check_env
+        lmdeploy check_env
     - name: run_test
       run: |
         pytest tests/test_hf_model.py -m interns1
-    - name: remove_env
-      if: always()
-      run: |
-        conda env remove --name internlm-model-latest
 
 
   notify_to_feishu:
