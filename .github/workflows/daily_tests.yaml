@@ -4,54 +4,41 @@ on:
   schedule:
     - cron:  '48 19 * * *'
 env:
-  WORKSPACE_PREFIX: $(echo $GITHUB_WORKSPACE |cut -d '/' -f 1-4)
-  SLURM_PARTITION: llm_s
-  CONDA_BASE_ENV: internlm-model-base
-  HUGGING_FACE_HUB_TOKEN: ${{ secrets.HUGGING_FACE_HUB_TOKEN }}
   HF_TOKEN: ${{ secrets.HUGGING_FACE_HUB_TOKEN }}
+  HF_DATASETS_CACHE: /nvme0/huggingface_hub
+  HF_HUB_CACHE: /nvme0/huggingface_hub
   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
 
 jobs:
-  HF_model:
-    runs-on: [t_cluster]
+  HF_model_S1:
+    runs-on: [linux-a100]
     strategy:
       matrix:
-        transformers-version: [4.38.0, latest]
+        transformers-version: [4.53.0, 4.56.1]
+    container:
+      image: openmmlab/lmdeploy:latest-cu12.8
+      options: "--gpus=all --ipc=host --user root -e PIP_CACHE_DIR=/root/.cache/pip -e NVIDIA_DISABLE_REQUIRE=1 --pull never"
+      volumes:
+        - /nvme0/github-actions/pip-cache:/root/.cache/pip
+        - /nvme0/huggingface_hub:/nvme0/huggingface_hub
+        - /usr/share/zoneinfo/Asia/Shanghai:/etc/localtime:ro
     steps:
-    - name: mask env
-      run: |
-        echo "::add-mask::${{env.WORKSPACE_PREFIX}}"
-        echo "::add-mask::$path_prefix"
     - uses: actions/checkout@v3
-
     - name: load_hf_model
       if: matrix.transformers-version != 'latest'
       run: |
-        conda create -n internlm-model-latest --clone ${CONDA_BASE_ENV}
-        source activate internlm-model-latest
-        pip install transformers==${{ matrix.transformers-version }}
+        pip install transformers==${{ matrix.transformers-version }} --force-reinstall
     - name: load_latest_hf_model
       if: matrix.transformers-version == 'latest'
       run: |
-        conda create -n internlm-model-latest --clone ${CONDA_BASE_ENV}
-        source activate internlm-model-latest
-        pip install transformers
-    - name: install torch
+        pip install transformers --force-reinstall
+    - name: check env
       run: |
-        source activate internlm-model-latest
-        pip install /mnt/petrelfs/qa-caif-cicd/resource/flash_attn-2.5.8+cu118torch2.2cxx11abiFALSE-cp310-cp310-linux_x86_64.whl
-        pip install torch==2.2.2 torchvision==0.17.2 --index-url https://download.pytorch.org/whl/cu118
-        pip install sentencepiece auto-gptq==0.6.0 beautifulsoup4 decord lxml
-        export LMDEPLOY_VERSION=0.5.0
-        export PYTHON_VERSION=310
-        pip install https://github.com/InternLM/lmdeploy/releases/download/v${LMDEPLOY_VERSION}/lmdeploy-${LMDEPLOY_VERSION}+cu118-cp${PYTHON_VERSION}-cp${PYTHON_VERSION}-manylinux2014_x86_64.whl --extra-index-url https://download.pytorch.org/whl/cu118
-        python3 -m pip list
-        conda deactivate
+        pip list
+        lmdepoly check_env
     - name: run_test
       run: |
-        source activate internlm-model-latest
-        srun -p ${SLURM_PARTITION} --kill-on-bad-exit=1 --job-name=${GITHUB_RUN_ID}-${GITHUB_JOB} --gpus-per-task=2 pytest -s -v --color=yes ./tests/test_hf_model.py
-        conda deactivate
+        pytest tests/test_hf_model.py -m interns1
     - name: remove_env
       if: always()
       run: |
@@ -60,8 +47,8 @@ jobs:
 
   notify_to_feishu:
     if: ${{ always() && !cancelled() && contains(needs.*.result, 'failure') && (github.ref_name == 'develop' || github.ref_name == 'main') }}
-    needs: [HF_model]
-    runs-on: [t_cluster]
+    needs: [HF_model_S1]
+    runs-on: [linux-a100]
     steps:
     - name: mask env
       run: |
