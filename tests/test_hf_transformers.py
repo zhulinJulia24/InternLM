@@ -3,8 +3,8 @@ import os
 import pytest
 import torch
 from transformers import AutoModelForCausalLM, AutoProcessor
-
-prompts = ['你好', "what's your name"]
+from utils import (get_cuda_id_by_workerid, set_device_env_variable,
+                   unset_device_env_variable)
 
 
 def assert_model(response):
@@ -26,7 +26,7 @@ def device_setup(request, worker_id):
         tp_num = 1
     else:
         tp_num = 1
-    
+
     set_device_env_variable(worker_id, tp_num)
     yield
     unset_device_env_variable()
@@ -37,9 +37,11 @@ def device_setup(request, worker_id):
 @pytest.mark.gpu_num_8
 @pytest.mark.interns1
 def test_demo_default_gpu8(model_name, enable_thinking, device_setup):
-    test_s1_chat_text_demo(model_name, enable_thinking)
-    test_s1_chat_image_demo(model_name, enable_thinking)
-    test_s1_chat_video_demo(model_name, enable_thinking)
+    processor, model = get_processor(model_name)
+    test_s1_chat_text_demo(processor, model, enable_thinking)
+    test_s1_chat_image_demo(processor, model, enable_thinking)
+    test_s1_chat_video_demo(processor, model, enable_thinking)
+
 
 @pytest.mark.parametrize('model_name', ['internlm/Intern-S1-mini'])
 @pytest.mark.parametrize('enable_thinking', [True, False])
@@ -50,13 +52,18 @@ def test_demo_default_gpu1(model_name, enable_thinking, device_setup):
     test_s1_chat_image_demo(model_name, enable_thinking)
     test_s1_chat_video_demo(model_name, enable_thinking)
 
-def test_s1_chat_text_demo(model_name, enable_thinking):
+
+def get_processor(model_name):
     processor = AutoProcessor.from_pretrained(model_name,
                                               trust_remote_code=True)
     model = AutoModelForCausalLM.from_pretrained(model_name,
                                                  device_map='auto',
                                                  torch_dtype='auto',
                                                  trust_remote_code=True)
+    return processor, model
+
+
+def test_s1_chat_text_demo(processor, model, enable_thinking):
     prompts = [
         'tell me about an interesting physical phenomenon.', '请给我讲一个有趣的物理现象'
     ]
@@ -82,70 +89,86 @@ def test_s1_chat_text_demo(model_name, enable_thinking):
         decoded_output = processor.decode(
             generate_ids[0, inputs['input_ids'].shape[1]:],
             skip_special_tokens=True)
-        assert 'physical phenomenon' in decoded_output.lower() or '物理现象' in decoded_output, decoded_output
+        assert 'physical phenomenon' in decoded_output.lower(
+        ) or '物理现象' in decoded_output, decoded_output
         assert_model(decoded_output)
 
-def test_s1_chat_image_demo(model_name, enable_thinking):
-    processor = AutoProcessor.from_pretrained(model_name, trust_remote_code=True)
-    model = AutoModelForCausalLM.from_pretrained(model_name, device_map="auto", torch_dtype="auto", trust_remote_code=True)
 
-    prompts = [
-        'Please describe the image explicitly.', '请描述这个图像。'
-    ]
+def test_s1_chat_image_demo(processor, model, enable_thinking):
+    prompts = ['Please describe the image explicitly.', '请描述这个图像。']
     for prompt in prompts:
-        messages = [
-            {
-                "role": "user",
-                "content": [
-                    {"type": "image", "url": "http://images.cocodataset.org/val2017/000000039769.jpg"},
-                    {"type": "text", "text": prompt},
-                ],
-            }
-        ]
+        messages = [{
+            'role':
+            'user',
+            'content': [
+                {
+                    'type': 'image',
+                    'url':
+                    'http://images.cocodataset.org/val2017/000000039769.jpg'
+                },
+                {
+                    'type': 'text',
+                    'text': prompt
+                },
+            ],
+        }]
 
-        inputs = processor.apply_chat_template(messages, add_generation_prompt=True, enable_thinking=enable_thinking, tokenize=True, return_dict=True, return_tensors="pt").to(model.device, dtype=torch.bfloat16)
+        inputs = processor.apply_chat_template(messages,
+                                               add_generation_prompt=True,
+                                               enable_thinking=enable_thinking,
+                                               tokenize=True,
+                                               return_dict=True,
+                                               return_tensors='pt').to(
+                                                   model.device,
+                                                   dtype=torch.bfloat16)
 
         generate_ids = model.generate(**inputs, max_new_tokens=32768)
-        decoded_output = processor.decode(generate_ids[0, inputs["input_ids"].shape[1] :], skip_special_tokens=True)
-        assert 'physical phenomenon' in decoded_output.lower() or '物理现象' in decoded_output, decoded_output
+        decoded_output = processor.decode(
+            generate_ids[0, inputs['input_ids'].shape[1]:],
+            skip_special_tokens=True)
+        assert 'physical phenomenon' in decoded_output.lower(
+        ) or '物理现象' in decoded_output, decoded_output
         assert_model(decoded_output)
 
 
-def test_s1_chat_video_demo(model_name, enable_thinking):
-    processor = AutoProcessor.from_pretrained(model_name, trust_remote_code=True)
-    model = AutoModelForCausalLM.from_pretrained(model_name, device_map="auto", torch_dtype="auto", trust_remote_code=True)
-
-    prompts = [
-        'What type of shot is the man performing?', '这个人正在进行什么类型的击球？'
-    ]
+def test_s1_chat_video_demo(processor, model, enable_thinking):
+    prompts = ['What type of shot is the man performing?', '这个人正在进行什么类型的击球？']
     for prompt in prompts:
-        messages = [
+        messages = [{
+            'role':
+            'user',
+            'content': [
                 {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "video",
-                            "url": "https://huggingface.co/datasets/hf-internal-testing/fixtures_videos/resolve/main/tennis.mp4",
-                        },
-                        {"type": "text", "text": prompt},
-                    ],
-                }
-            ]
+                    'type':
+                    'video',
+                    'url':
+                    'https://huggingface.co/datasets/hf-internal-testing/fixtures_videos/resolve/main/tennis.mp4', # noqa: E501
+                },
+                {
+                    'type': 'text',
+                    'text': prompt
+                },
+            ],
+        }]
 
         inputs = processor.apply_chat_template(
-                messages,
-                return_tensors="pt",
-                add_generation_prompt=True,
-                enable_thinking=enable_thinking,
-                video_load_backend="decord",
-                tokenize=True,
-                return_dict=True,
-            ).to(model.device, dtype=torch.float16)
+            messages,
+            return_tensors='pt',
+            add_generation_prompt=True,
+            enable_thinking=enable_thinking,
+            video_load_backend='decord',
+            tokenize=True,
+            return_dict=True,
+        ).to(model.device, dtype=torch.float16)
 
         generate_ids = model.generate(**inputs, max_new_tokens=32768)
-        decoded_output = processor.decode(generate_ids[0, inputs["input_ids"].shape[1] :], skip_special_tokens=True)
-        assert 'physical phenomenon' in decoded_output.lower() or '物理现象' in decoded_output, decoded_output
+        decoded_output = processor.decode(
+            generate_ids[0, inputs['input_ids'].shape[1]:],
+            skip_special_tokens=True)
+        assert 'physical phenomenon' in decoded_output.lower(
+        ) or '物理现象' in decoded_output, decoded_output
         assert_model(decoded_output)
+
 
 def get_cuda_prefix_by_workerid(worker_id, tp_num: int = 1):
     cuda_id = get_cuda_id_by_workerid(worker_id, tp_num)
@@ -175,7 +198,6 @@ def get_cuda_id_by_workerid(worker_id, tp_num: int = 1):
                 str(cuda_num + 2),
                 str(cuda_num + 3)
             ])
-
 
 def set_device_env_variable(worker_id, tp_num: int = 1):
     cuda_id = get_cuda_id_by_workerid(worker_id, tp_num)
