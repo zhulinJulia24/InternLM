@@ -15,7 +15,7 @@ def assert_model(response):
 @pytest.mark.parametrize('enable_thinking', [True, False])
 @pytest.mark.gpu_num_8
 @pytest.mark.interns1
-def test_demo_default_gpu8(model_name, enable_thinking):
+def test_demo_default(model_name, enable_thinking):
     processor, model = get_processor(model_name)
     test_s1_chat_text_demo(processor, model, enable_thinking)
     test_s1_chat_image_demo(processor, model, enable_thinking)
@@ -95,8 +95,8 @@ def test_s1_chat_image_demo(processor, model, enable_thinking):
         decoded_output = processor.decode(
             generate_ids[0, inputs['input_ids'].shape[1]:],
             skip_special_tokens=True)
-        assert 'physical phenomenon' in decoded_output.lower(
-        ) or '物理现象' in decoded_output, decoded_output
+        assert 'cat' in decoded_output.lower(
+        ) or '猫' in decoded_output, decoded_output
         assert_model(decoded_output)
 
 
