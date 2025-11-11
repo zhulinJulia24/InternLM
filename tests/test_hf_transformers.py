@@ -1,10 +1,6 @@
-import os
-
 import pytest
 import torch
 from transformers import AutoModelForCausalLM, AutoProcessor
-from utils import (get_cuda_id_by_workerid, set_device_env_variable,
-                   unset_device_env_variable)
 
 
 def assert_model(response):
@@ -14,29 +10,11 @@ def assert_model(response):
     assert 'Iama' not in response
 
 
-@pytest.fixture(scope='function', autouse=True)
-def device_setup(request, worker_id):
-    if request.node.get_closest_marker('gpu_num_8'):
-        tp_num = 8
-    elif request.node.get_closest_marker('gpu_num_4'):
-        tp_num = 4
-    elif request.node.get_closest_marker('gpu_num_2'):
-        tp_num = 2
-    elif request.node.get_closest_marker('gpu_num_1'):
-        tp_num = 1
-    else:
-        tp_num = 1
-
-    set_device_env_variable(worker_id, tp_num)
-    yield
-    unset_device_env_variable()
-
-
 @pytest.mark.parametrize('model_name', ['internlm/Intern-S1'])
 @pytest.mark.parametrize('enable_thinking', [True, False])
 @pytest.mark.gpu_num_8
 @pytest.mark.interns1
-def test_demo_default_gpu8(model_name, enable_thinking, device_setup):
+def test_demo_default_gpu8(model_name, enable_thinking):
     processor, model = get_processor(model_name)
     test_s1_chat_text_demo(processor, model, enable_thinking)
     test_s1_chat_image_demo(processor, model, enable_thinking)
@@ -47,10 +25,11 @@ def test_demo_default_gpu8(model_name, enable_thinking, device_setup):
 @pytest.mark.parametrize('enable_thinking', [True, False])
 @pytest.mark.gpu_num_1
 @pytest.mark.interns1
-def test_demo_default_gpu1(model_name, enable_thinking, device_setup):
-    test_s1_chat_text_demo(model_name, enable_thinking)
-    test_s1_chat_image_demo(model_name, enable_thinking)
-    test_s1_chat_video_demo(model_name, enable_thinking)
+def test_demo_default_gpu1(model_name, enable_thinking):
+    processor, model = get_processor(model_name)
+    test_s1_chat_text_demo(processor, model, enable_thinking)
+    test_s1_chat_image_demo(processor, model, enable_thinking)
+    test_s1_chat_video_demo(processor, model, enable_thinking)
 
 
 def get_processor(model_name):
@@ -142,7 +121,7 @@ def test_s1_chat_video_demo(processor, model, enable_thinking):
                     'type':
                     'video',
                     'url':
-                    'https://huggingface.co/datasets/hf-internal-testing/fixtures_videos/resolve/main/tennis.mp4', # noqa: E501
+                    'https://huggingface.co/datasets/hf-internal-testing/fixtures_videos/resolve/main/tennis.mp4',  # noqa: E501
                 },
                 {
                     'type': 'text',
@@ -168,43 +147,3 @@ def test_s1_chat_video_demo(processor, model, enable_thinking):
         assert 'physical phenomenon' in decoded_output.lower(
         ) or '物理现象' in decoded_output, decoded_output
         assert_model(decoded_output)
-
-
-def get_cuda_prefix_by_workerid(worker_id, tp_num: int = 1):
-    cuda_id = get_cuda_id_by_workerid(worker_id, tp_num)
-    if cuda_id is None or 'gw' not in worker_id:
-        return None
-    else:
-        device_type = os.environ.get('DEVICE', 'cuda')
-        if device_type == 'ascend':
-            return 'ASCEND_RT_VISIBLE_DEVICES=' + cuda_id
-        else:
-            return 'CUDA_VISIBLE_DEVICES=' + cuda_id
-
-def get_cuda_id_by_workerid(worker_id, tp_num: int = 1):
-    if worker_id is None or 'gw' not in worker_id:
-        return None
-    else:
-        if tp_num == 1:
-            return worker_id.replace('gw', '')
-        elif tp_num == 2:
-            cuda_num = int(worker_id.replace('gw', '')) * 2
-            return ','.join([str(cuda_num), str(cuda_num + 1)])
-        elif tp_num == 4:
-            cuda_num = int(worker_id.replace('gw', '')) * 4
-            return ','.join([
-                str(cuda_num),
-                str(cuda_num + 1),
-                str(cuda_num + 2),
-                str(cuda_num + 3)
-            ])
-
-def set_device_env_variable(worker_id, tp_num: int = 1):
-    cuda_id = get_cuda_id_by_workerid(worker_id, tp_num)
-    if cuda_id is not None:
-        os.environ['CUDA_VISIBLE_DEVICES'] = cuda_id
-
-
-def unset_device_env_variable():
-    if 'CUDA_VISIBLE_DEVICES' in os.environ:
-        del os.environ['CUDA_VISIBLE_DEVICES']
