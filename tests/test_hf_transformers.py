@@ -10,22 +10,12 @@ def assert_model(response):
     assert 'Iama' not in response
 
 
-@pytest.mark.parametrize('model_name', ['internlm/Intern-S1'])
+@pytest.mark.parametrize('model_name',
+                         ['internlm/Intern-S1', 'internlm/Intern-S1-mini'])
 @pytest.mark.parametrize('enable_thinking', [True, False])
 @pytest.mark.gpu_num_8
 @pytest.mark.interns1
 def test_demo_default_gpu8(model_name, enable_thinking):
-    processor, model = get_processor(model_name)
-    test_s1_chat_text_demo(processor, model, enable_thinking)
-    test_s1_chat_image_demo(processor, model, enable_thinking)
-    test_s1_chat_video_demo(processor, model, enable_thinking)
-
-
-@pytest.mark.parametrize('model_name', ['internlm/Intern-S1-mini'])
-@pytest.mark.parametrize('enable_thinking', [True, False])
-@pytest.mark.gpu_num_1
-@pytest.mark.interns1
-def test_demo_default_gpu1(model_name, enable_thinking):
     processor, model = get_processor(model_name)
     test_s1_chat_text_demo(processor, model, enable_thinking)
     test_s1_chat_image_demo(processor, model, enable_thinking)
