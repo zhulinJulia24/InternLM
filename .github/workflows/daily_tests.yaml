@@ -38,7 +38,7 @@ jobs:
         lmdeploy check_env
     - name: run_test
       run: |
-        pip install pytest pytest-xdist
+        pip install pytest pytest-xdist decord
         pytest tests/test_hf_transformers.py -n 1
 
 
