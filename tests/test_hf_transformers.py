@@ -17,9 +17,9 @@ def assert_model(response):
 @pytest.mark.interns1
 def test_demo_default(model_name, enable_thinking):
     autoprocessor, model = get_processor(model_name)
-    test_s1_chat_text_demo(autoprocessor, model, enable_thinking)
-    test_s1_chat_image_demo(autoprocessor, model, enable_thinking)
-    test_s1_chat_video_demo(autoprocessor, model, enable_thinking)
+    s1_chat_text_demo(autoprocessor, model, enable_thinking)
+    s1_chat_image_demo(autoprocessor, model, enable_thinking)
+    s1_chat_video_demo(autoprocessor, model, enable_thinking)
 
 
 def get_processor(model_name):
@@ -32,7 +32,7 @@ def get_processor(model_name):
     return autoprocessor, model
 
 
-def test_s1_chat_text_demo(autoprocessor, model, enable_thinking):
+def s1_chat_text_demo(autoprocessor, model, enable_thinking):
     prompts = [
         'tell me about an interesting physical phenomenon.', '请给我讲一个有趣的物理现象'
     ]
@@ -62,7 +62,7 @@ def test_s1_chat_text_demo(autoprocessor, model, enable_thinking):
         assert_model(decoded_output)
 
 
-def test_s1_chat_image_demo(autoprocessor, model, enable_thinking):
+def s1_chat_image_demo(autoprocessor, model, enable_thinking):
     prompts = ['Please describe the image explicitly.', '请描述这个图像。']
     for prompt in prompts:
         messages = [{
@@ -98,7 +98,7 @@ def test_s1_chat_image_demo(autoprocessor, model, enable_thinking):
         assert_model(decoded_output)
 
 
-def test_s1_chat_video_demo(autoprocessor, model, enable_thinking):
+def s1_chat_video_demo(autoprocessor, model, enable_thinking):
     prompts = ['What type of shot is the man performing?', '这个人正在进行什么类型的击球？']
     for prompt in prompts:
         messages = [{
