@@ -57,6 +57,7 @@ def s1_chat_text_demo(autoprocessor, model, enable_thinking):
         decoded_output = autoprocessor.decode(
             generate_ids[0, inputs['input_ids'].shape[1]:],
             skip_special_tokens=True)
+        print('s1_chat_text_demo', decoded_output)
         assert 'physical phenomenon' in decoded_output.lower(
         ) or '物理现象' in decoded_output, decoded_output
         assert_model(decoded_output)
@@ -93,6 +94,7 @@ def s1_chat_image_demo(autoprocessor, model, enable_thinking):
         decoded_output = autoprocessor.decode(
             generate_ids[0, inputs['input_ids'].shape[1]:],
             skip_special_tokens=True)
+        print('s1_chat_image_demo', decoded_output)
         assert 'cat' in decoded_output.lower(
         ) or '猫' in decoded_output, decoded_output
         assert_model(decoded_output)
@@ -132,6 +134,7 @@ def s1_chat_video_demo(autoprocessor, model, enable_thinking):
         decoded_output = autoprocessor.decode(
             generate_ids[0, inputs['input_ids'].shape[1]:],
             skip_special_tokens=True)
-        assert 'physical phenomenon' in decoded_output.lower(
-        ) or '物理现象' in decoded_output, decoded_output
+        print('s1_chat_video_demo', decoded_output)
+        assert 'tennis' in decoded_output.lower(
+        ) or '网球' in decoded_output, decoded_output
         assert_model(decoded_output)
