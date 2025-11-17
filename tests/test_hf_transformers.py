@@ -15,10 +15,28 @@ def assert_model(response):
 @pytest.mark.parametrize('enable_thinking', [True, False])
 @pytest.mark.gpu_num_8
 @pytest.mark.interns1
-def test_demo_default(model_name, enable_thinking):
+def test_demo_default1(model_name, enable_thinking):
     autoprocessor, model = get_processor(model_name)
     s1_chat_text_demo(autoprocessor, model, enable_thinking)
+
+
+@pytest.mark.parametrize('model_name',
+                         ['internlm/Intern-S1', 'internlm/Intern-S1-mini'])
+@pytest.mark.parametrize('enable_thinking', [True, False])
+@pytest.mark.gpu_num_8
+@pytest.mark.interns1
+def test_demo_default2(model_name, enable_thinking):
+    autoprocessor, model = get_processor(model_name)
     s1_chat_image_demo(autoprocessor, model, enable_thinking)
+
+
+@pytest.mark.parametrize('model_name',
+                         ['internlm/Intern-S1', 'internlm/Intern-S1-mini'])
+@pytest.mark.parametrize('enable_thinking', [True, False])
+@pytest.mark.gpu_num_8
+@pytest.mark.interns1
+def test_demo_default3(model_name, enable_thinking):
+    autoprocessor, model = get_processor(model_name)
     s1_chat_video_demo(autoprocessor, model, enable_thinking)
 
 
