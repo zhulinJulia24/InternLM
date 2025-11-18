@@ -8,6 +8,7 @@ env:
   HF_DATASETS_CACHE: /nvme0/huggingface_hub
   HF_HUB_CACHE: /nvme0/huggingface_hub
   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+  PYTORCH_CUDA_ALLOC_CONF: expandable_segments:True
 
 jobs:
   HF_model_S1:
